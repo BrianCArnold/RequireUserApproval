@@ -57,5 +57,8 @@ module.exports = {
 
 // Run the action if it's not running in an automated testing environment
 if (process.env.NODE_ENV !== 'automated-testing') {
-  run().catch((error) => core.setFailed(error));
+  run().catch((error) => {
+    console.log(error);
+    core.setFailed(error)
+  });
 }
