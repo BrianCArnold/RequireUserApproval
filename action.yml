@@ -1,5 +1,5 @@
-name: 'Auto Request Review'
-description: 'Automatically requests review of a pull request based on files changes and/or groups the author belongs to 🤖'
+name: 'Require User Approval'
+description: 'Automatically requires reviewers for pull request'
 branding:
   icon: 'at-sign'
   color: 'green'
