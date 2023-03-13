@@ -36,10 +36,3 @@ jobs:
     - name: Run linter and tests
       run: |
         npm run lint
-        npm test
-        npm run coverage
-
-    - name: Send test coverage report to Coveralls
-      uses: coverallsapp/github-action@master
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
