@@ -1,9 +1,7 @@
 'use strict';
 
-const core = require('@actions/core');
-const { LOCAL_FILE_MISSING } = require('./constants');
-const github = require('./github'); // Don't destructure this object to stub with sinon in tests
-
+import core from '@actions/core';
+import github from './github';
 
 async function run() {
   core.info('Fetching configuration file from input "config"...');
@@ -12,7 +10,7 @@ async function run() {
 
   try {
     config = await github.fetch_config();
-  } catch (error) {
+  } catch (error: any) {
     if (error.status === 404) {
       core.warning('No configuration file is found in the base branch; terminating the process');
       return;
@@ -20,19 +18,17 @@ async function run() {
     throw error;
   }
 
-  const { title, is_draft, author } = github.get_pull_request();
-
   let reviews = await github.get_reviews();
 
-  let requirementCounts = {};
-  let requirementMembers = {};
+  let requirementCounts: { [key: string]: number } = {};
+  let requirementMembers: { [key: string]: string[] } = {};
 
   for (let req in config.groups) {
     requirementCounts[req] = config.groups[req].required;
     requirementMembers[req] = config.groups[req].members;
   }
 
-  let processedReviewers = [];
+  let processedReviewers: string[] = [];
 
   for (let i = 0; i < reviews.length; i++) {
     let review = reviews[i];

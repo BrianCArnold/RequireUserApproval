@@ -1,6 +1,159 @@
 /******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
+/***/ 7295:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const core_1 = __importDefault(__nccwpck_require__(2186));
+const github_1 = __importDefault(__nccwpck_require__(5438));
+__nccwpck_require__(2539);
+const yaml_1 = __importDefault(__nccwpck_require__(4603));
+function fetch_config() {
+    return __awaiter(this, void 0, void 0, function* () {
+        const context = get_context();
+        const octokit = get_octokit();
+        const config_path = get_config_path();
+        const { data: response_body } = yield octokit.repos.getContent({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            path: config_path,
+            ref: context.ref,
+        });
+        return yaml_1.default.parse(response_body.content);
+    });
+}
+function get_reviews() {
+    return __awaiter(this, void 0, void 0, function* () {
+        const context = get_context();
+        const octokit = get_octokit();
+        let reviewsResult = yield octokit.pulls.listReviews({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            pull_number: context.payload.pull_request.number
+        });
+        return reviewsResult.data;
+    });
+}
+/* Private */
+let octokit_cache;
+let context_cache;
+let token_cache;
+let config_path_cache;
+function get_context() {
+    return context_cache || (context_cache = github_1.default.context);
+}
+function get_token() {
+    return token_cache || (token_cache = core_1.default.getInput('token'));
+}
+function get_config_path() {
+    return config_path_cache || (config_path_cache = core_1.default.getInput('config'));
+}
+function get_octokit() {
+    const token = get_token();
+    return octokit_cache = github_1.default.getOctokit(token);
+}
+function clear_cache() {
+    context_cache = undefined;
+    token_cache = undefined;
+    config_path_cache = undefined;
+    octokit_cache = undefined;
+}
+exports["default"] = {
+    fetch_config,
+    get_reviews,
+    clear_cache,
+};
+
+
+/***/ }),
+
+/***/ 1667:
+/***/ (function(module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const core_1 = __importDefault(__nccwpck_require__(2186));
+const github_1 = __importDefault(__nccwpck_require__(7295));
+function run() {
+    return __awaiter(this, void 0, void 0, function* () {
+        core_1.default.info('Fetching configuration file from input "config"...');
+        let config;
+        try {
+            config = yield github_1.default.fetch_config();
+        }
+        catch (error) {
+            if (error.status === 404) {
+                core_1.default.warning('No configuration file is found in the base branch; terminating the process');
+                return;
+            }
+            throw error;
+        }
+        let reviews = yield github_1.default.get_reviews();
+        let requirementCounts = {};
+        let requirementMembers = {};
+        for (let req in config.groups) {
+            requirementCounts[req] = config.groups[req].required;
+            requirementMembers[req] = config.groups[req].members;
+        }
+        let processedReviewers = [];
+        for (let i = 0; i < reviews.length; i++) {
+            let review = reviews[i];
+            let userName = review.user.login;
+            if (!processedReviewers.includes(userName)) {
+                processedReviewers.push(userName);
+                for (let req in requirementMembers) {
+                    if (requirementMembers[req].includes(userName)) {
+                        requirementCounts[req]--;
+                    }
+                }
+            }
+        }
+        for (let req in requirementCounts) {
+            if (requirementCounts[req] > 0) {
+                core_1.default.setFailed('Missing one or more required approvers.');
+            }
+        }
+    });
+}
+module.exports = {
+    run,
+};
+// Run the action if it's not running in an automated testing environment
+if (process.env.NODE_ENV !== 'automated-testing') {
+    run().catch((error) => core_1.default.setFailed(error));
+}
+
+
+/***/ }),
+
 /***/ 7351:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -14105,186 +14258,6 @@ function wrappy (fn, cb) {
 
 /***/ }),
 
-/***/ 4438:
-/***/ ((module) => {
-
-const LOCAL_FILE_MISSING = 'Local file missing';
-
-module.exports = {
-  LOCAL_FILE_MISSING,
-};
-
-
-/***/ }),
-
-/***/ 8396:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-"use strict";
-
-
-const core = __nccwpck_require__(2186);
-const fs = __nccwpck_require__(7147);
-const github = __nccwpck_require__(5438);
-const partition = __nccwpck_require__(2539);
-const yaml = __nccwpck_require__(4603);
-const { LOCAL_FILE_MISSING } = __nccwpck_require__(4438);
-
-async function fetch_config() {
-  const context = get_context();
-  const octokit = get_octokit();
-  const config_path = get_config_path();
-  let content = '';
-
-  const { data: response_body } = await octokit.repos.getContent({
-    owner: context.repo.owner,
-    repo: context.repo.repo,
-    path: config_path,
-    ref: context.ref,
-  });
-
-  content = Buffer.from(response_body.content, response_body.encoding).toString();
-
-  return yaml.parse(content);
-}
-
-function get_pull_request() {
-  const context = get_context();
-
-  return new PullRequest(context.payload.pull_request);
-}
-
-
-async function get_reviews() {
-  const context = get_context();
-  const octokit = get_octokit();
-
-  let reviewsResult = await octokit.pulls.listReviews({
-    owner: context.repo.owner,
-    repo: context.repo.repo,
-    pull_number: context.payload.pull_request.number
-  });
-  return reviewsResult.data;
-}
-
-/* Private */
-
-let context_cache;
-let token_cache;
-let config_path_cache;
-
-function get_context() {
-  return context_cache || (context_cache = github.context);
-}
-
-function get_token() {
-  return token_cache || (token_cache = core.getInput('token'));
-}
-
-function get_config_path() {
-  return config_path_cache || (config_path_cache = core.getInput('config'));
-}
-
-
-function get_octokit() {
-  // if (octokit_cache) {
-  //   return octokit_cache;
-  // }
-
-  const token = get_token();
-  return octokit_cache = github.getOctokit(token);
-}
-
-function clear_cache() {
-  context_cache = undefined;
-  token_cache = undefined;
-  config_path_cache = undefined;
-  octokit_cache = undefined;
-}
-
-module.exports = {
-  get_pull_request,
-  fetch_config,
-  get_reviews,
-  clear_cache,
-};
-
-
-/***/ }),
-
-/***/ 4351:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-"use strict";
-
-
-const core = __nccwpck_require__(2186);
-const { LOCAL_FILE_MISSING } = __nccwpck_require__(4438);
-const github = __nccwpck_require__(8396); // Don't destructure this object to stub with sinon in tests
-
-
-async function run() {
-  core.info('Fetching configuration file from input "config"...');
-
-  let config;
-
-  try {
-    config = await github.fetch_config();
-  } catch (error) {
-    if (error.status === 404) {
-      core.warning('No configuration file is found in the base branch; terminating the process');
-      return;
-    }
-    throw error;
-  }
-
-  const { title, is_draft, author } = github.get_pull_request();
-
-  let reviews = await github.get_reviews();
-
-  let requirementCounts = {};
-  let requirementMembers = {};
-
-  for (let req in config.groups) {
-    requirementCounts[req] = config.groups[req].required;
-    requirementMembers[req] = config.groups[req].members;
-  }
-
-  let processedReviewers = [];
-
-  for (let i = 0; i < reviews.length; i++) {
-    let review = reviews[i];
-    let userName = review.user.login;
-    if (!processedReviewers.includes(userName))
-    {
-      processedReviewers.push(userName);
-      for (let req in requirementMembers) {
-        if (requirementMembers[req].includes(userName)) {
-          requirementCounts[req]--;
-        }
-      }
-    }
-  }
-
-  for (let req in requirementCounts) {
-    if (requirementCounts[req] > 0) {
-      core.setFailed('Missing one or more required approvers.');
-    }
-  }
-}
-
-module.exports = {
-  run,
-};
-
-// Run the action if it's not running in an automated testing environment
-if (process.env.NODE_ENV !== 'automated-testing') {
-  run().catch((error) => core.setFailed(error));
-}
-
-
-/***/ }),
-
 /***/ 2877:
 /***/ ((module) => {
 
@@ -21051,7 +21024,7 @@ module.exports = JSON.parse('[[[0,44],"disallowed_STD3_valid"],[[45,46],"valid"]
 /******/ 	// startup
 /******/ 	// Load entry module and return exports
 /******/ 	// This entry module is referenced by other modules so it can't be inlined
-/******/ 	var __webpack_exports__ = __nccwpck_require__(4351);
+/******/ 	var __webpack_exports__ = __nccwpck_require__(1667);
 /******/ 	module.exports = __webpack_exports__;
 /******/ 	
 /******/ })()

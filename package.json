@@ -1,10 +1,10 @@
 {
   "name": "require-user-approval",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "GitHub Action that automatically checks if a set of required users have approved the pull request.",
   "main": "index.js",
   "scripts": {
-    "build": "ncc build src/index.js",
+    "build": "npx tsc; ncc build build/index.js",
     "lint": "eslint src test"
   },
   "keywords": [],
@@ -18,11 +18,13 @@
     "yaml": "^1.10.0"
   },
   "devDependencies": {
+    "@types/node": "^18.15.2",
     "@vercel/ncc": "^0.33.3",
     "chai": "^4.3.6",
     "eslint": "^8.9.0",
     "mocha": "^9.2.1",
     "nyc": "^15.1.0",
-    "sinon": "^13.0.1"
+    "sinon": "^13.0.1",
+    "typescript": "^4.9.5"
   }
 }
