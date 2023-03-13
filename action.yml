@@ -1,0 +1,14 @@
+name: 'Auto Request Review'
+description: 'Automatically requests review of a pull request based on files changes and/or groups the author belongs to 🤖'
+branding:
+  icon: 'at-sign'
+  color: 'green'
+inputs:
+  token:
+    required: true
+  config:
+    required: false
+    default: '.github/require_reviewers.yml'
+runs:
+  using: 'node16'
+  main: 'dist/index.js'
