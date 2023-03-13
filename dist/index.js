@@ -50,10 +50,10 @@ function get_reviews() {
     });
 }
 /* Private */
-let octokit_cache;
-let context_cache;
-let token_cache;
-let config_path_cache;
+let octokit_cache = null;
+let context_cache = null;
+let token_cache = null;
+let config_path_cache = null;
 function get_context() {
     return context_cache || (context_cache = github_1.default.context);
 }
@@ -65,13 +65,13 @@ function get_config_path() {
 }
 function get_octokit() {
     const token = get_token();
-    return octokit_cache = github_1.default.getOctokit(token);
+    return octokit_cache || (octokit_cache = github_1.default.getOctokit(token));
 }
 function clear_cache() {
-    context_cache = undefined;
-    token_cache = undefined;
-    config_path_cache = undefined;
-    octokit_cache = undefined;
+    context_cache = null;
+    token_cache = null;
+    config_path_cache = null;
+    octokit_cache = null;
 }
 exports["default"] = {
     fetch_config,

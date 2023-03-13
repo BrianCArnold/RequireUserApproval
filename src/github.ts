@@ -35,10 +35,10 @@ async function get_reviews() {
 }
 
 /* Private */
-let octokit_cache: any;
-let context_cache: any;
-let token_cache: any;
-let config_path_cache: any;
+let octokit_cache: any = null;
+let context_cache: any = null;
+let token_cache: any = null;
+let config_path_cache: any = null;
 
 function get_context() {
   return context_cache || (context_cache = github.context);
@@ -55,14 +55,14 @@ function get_config_path() {
 
 function get_octokit() {
   const token = get_token();
-  return octokit_cache = github.getOctokit(token);
+  return octokit_cache || (octokit_cache = github.getOctokit(token));
 }
 
 function clear_cache() {
-  context_cache = undefined;
-  token_cache = undefined;
-  config_path_cache = undefined;
-  octokit_cache = undefined;
+  context_cache = null;
+  token_cache = null;
+  config_path_cache = null;
+  octokit_cache = null;
 }
 
 export default {
