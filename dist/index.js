@@ -6,6 +6,29 @@
 
 "use strict";
 
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -19,7 +42,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-const core_1 = __importDefault(__nccwpck_require__(2186));
+const core = __importStar(__nccwpck_require__(2186));
 const github_1 = __importDefault(__nccwpck_require__(5438));
 __nccwpck_require__(2539);
 const yaml_1 = __importDefault(__nccwpck_require__(4603));
@@ -58,10 +81,10 @@ function get_context() {
     return context_cache || (context_cache = github_1.default.context);
 }
 function get_token() {
-    return token_cache || (token_cache = core_1.default.getInput('token'));
+    return token_cache || (token_cache = core.getInput('token'));
 }
 function get_config_path() {
-    return config_path_cache || (config_path_cache = core_1.default.getInput('config'));
+    return config_path_cache || (config_path_cache = core.getInput('config'));
 }
 function get_octokit() {
     const token = get_token();
@@ -87,6 +110,29 @@ exports["default"] = {
 
 "use strict";
 
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -100,18 +146,18 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-const core_1 = __importDefault(__nccwpck_require__(2186));
+const core = __importStar(__nccwpck_require__(2186));
 const github_1 = __importDefault(__nccwpck_require__(7295));
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
-        core_1.default.info('Fetching configuration file from input "config"...');
+        core.info('Fetching configuration file from input "config"...');
         let config;
         try {
             config = yield github_1.default.fetch_config();
         }
         catch (error) {
             if (error.status === 404) {
-                core_1.default.warning('No configuration file is found in the base branch; terminating the process');
+                core.warning('No configuration file is found in the base branch; terminating the process');
                 return;
             }
             throw error;
@@ -138,7 +184,7 @@ function run() {
         }
         for (let req in requirementCounts) {
             if (requirementCounts[req] > 0) {
-                core_1.default.setFailed('Missing one or more required approvers.');
+                core.setFailed('Missing one or more required approvers.');
             }
         }
     });
@@ -150,7 +196,7 @@ module.exports = {
 if (process.env.NODE_ENV !== 'automated-testing') {
     run().catch((error) => {
         console.log(error);
-        core_1.default.setFailed(error);
+        core.setFailed(error);
     });
 }
 

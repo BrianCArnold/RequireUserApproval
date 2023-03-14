@@ -1,6 +1,6 @@
 'use strict';
 
-import core from '@actions/core';
+import * as core from '@actions/core';
 import github from './github';
 
 async function run() {
