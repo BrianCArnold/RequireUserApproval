@@ -57,6 +57,9 @@ function get_reviews() {
     return __awaiter(this, void 0, void 0, function* () {
         const context = get_context();
         const octokit = get_octokit();
+        if (!context.payload.pull_request) {
+            throw 'No pull request found.';
+        }
         let reviewsResult = yield octokit.pulls.listReviews({
             owner: context.repo.owner,
             repo: context.repo.repo,
@@ -65,32 +68,20 @@ function get_reviews() {
         return reviewsResult.data;
     });
 }
-/* Private */
-let octokit_cache = null;
-let context_cache = null;
-let token_cache = null;
-let config_path_cache = null;
 function get_context() {
-    return context_cache || (context_cache = github_1.default.context);
+    return github_1.default.context;
 }
 function get_token() {
-    return token_cache || (token_cache = core.getInput('token'));
+    return core.getInput('token');
 }
 function get_config_path() {
-    return config_path_cache || (config_path_cache = core.getInput('config'));
+    return core.getInput('config');
 }
 function get_octokit() {
     const token = get_token();
-    return octokit_cache || (octokit_cache = github_1.default.getOctokit(token));
-}
-function clear_cache() {
-    context_cache = null;
-    token_cache = null;
-    config_path_cache = null;
-    octokit_cache = null;
+    return github_1.default.getOctokit(token);
 }
 exports.default = {
     fetch_config,
     get_reviews,
-    clear_cache,
 };
