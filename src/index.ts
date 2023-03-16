@@ -18,22 +18,29 @@ async function run() {
     throw error;
   }
 
+  core.info('Getting reviews...');
   let reviews = await github.get_reviews();
 
   let requirementCounts: { [key: string]: number } = {};
   let requirementMembers: { [key: string]: string[] } = {};
-
+  core.info('Retrieving required group configurations...');
   for (let req in config.groups) {
     requirementCounts[req] = config.groups[req].required;
     requirementMembers[req] = config.groups[req].members;
+    core.info(`Requiring ${config.groups[req].required} of the following:`);
+    for (let mem in config.groups[req].members) {
+      core.info(`  ${mem}`);
+    }
   }
-
+  
   let processedReviewers: string[] = [];
 
   for (let i = 0; i < reviews.length; i++) {
     let review = reviews[i];
     let userName = review.user.login;
-    if (!processedReviewers.includes(userName))
+    let state = review.state;
+    core.info(`Processing ${state} review by ${userName}...`);
+    if (!processedReviewers.includes(userName) && state == 'APPROVED')
     {
       processedReviewers.push(userName);
       for (let req in requirementMembers) {

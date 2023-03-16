@@ -153,18 +153,26 @@ function run() {
             }
             throw error;
         }
+        core.info('Getting reviews...');
         let reviews = yield github_1.default.get_reviews();
         let requirementCounts = {};
         let requirementMembers = {};
+        core.info('Retrieving required group configurations...');
         for (let req in config.groups) {
             requirementCounts[req] = config.groups[req].required;
             requirementMembers[req] = config.groups[req].members;
+            core.info(`Requiring ${config.groups[req].required} of the following:`);
+            for (let mem in config.groups[req].members) {
+                core.info(`  ${mem}`);
+            }
         }
         let processedReviewers = [];
         for (let i = 0; i < reviews.length; i++) {
             let review = reviews[i];
             let userName = review.user.login;
-            if (!processedReviewers.includes(userName)) {
+            let state = review.state;
+            core.info(`Processing ${state} review by ${userName}...`);
+            if (!processedReviewers.includes(userName) && state == 'APPROVED') {
                 processedReviewers.push(userName);
                 for (let req in requirementMembers) {
                     if (requirementMembers[req].includes(userName)) {
