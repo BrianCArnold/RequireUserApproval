@@ -45,7 +45,7 @@ function getTeamMembers(teamName) {
         const context = get_context();
         const octokit = get_octokit();
         const members = yield octokit.teams.listMembersInOrg({
-            org: 'SpiderRock',
+            org: context.repo.owner,
             team_slug: teamName
         });
         let teamMembers = [];

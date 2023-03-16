@@ -13,8 +13,9 @@ async function getTeamMembers(teamName: string): Promise<string[]> {
   const context = get_context();
   const octokit = get_octokit();
 
+  
   const members = await octokit.teams.listMembersInOrg({
-    org: 'SpiderRock',
+    org: context.repo.owner,
     team_slug: teamName
   });
 
