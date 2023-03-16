@@ -77,8 +77,7 @@ async function run() {
       if (groupMemberApprovals[member]) {
         groupApprovalCount++;
         groupApprovedStrings.push(` ✅ ${member}`);
-      }
-      for (let member in groupMemberApprovals) {
+      }else {
         groupNotApprovedStrings.push(` ❌ ${member}`);
       }
     }

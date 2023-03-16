@@ -103,7 +103,7 @@ function run() {
                     groupApprovalCount++;
                     groupApprovedStrings.push(` ✅ ${member}`);
                 }
-                for (let member in groupMemberApprovals) {
+                else {
                     groupNotApprovedStrings.push(` ❌ ${member}`);
                 }
             }
