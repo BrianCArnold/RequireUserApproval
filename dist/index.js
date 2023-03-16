@@ -238,7 +238,7 @@ function run() {
                 //Enough Approvers
                 core.startGroup(`Required Approver count met from group: ${group}.`);
                 for (let approval in groupApprovedStrings) {
-                    core.info(approval);
+                    core.info(groupApprovedStrings[approval]);
                 }
                 core.endGroup();
             }
@@ -247,10 +247,10 @@ function run() {
                 failedGroups.push(group);
                 core.startGroup(`Missing ${groupApprovalRequired - groupApprovalCount} approval(s) from group: ${group}.`);
                 for (let approval in groupApprovedStrings) {
-                    core.info(approval);
+                    core.info(groupApprovedStrings[approval]);
                 }
                 for (let unapproval in groupNotApprovedStrings) {
-                    core.warning(unapproval);
+                    core.warning(groupNotApprovedStrings[unapproval]);
                 }
                 core.endGroup();
             }
