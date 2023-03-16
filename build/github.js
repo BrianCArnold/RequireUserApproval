@@ -69,20 +69,43 @@ function get_reviews() {
         return reviewsResult.data;
     });
 }
-function get_context() {
-    return github.context;
+function explainStatus(group, approvers, totalRequired) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const octokit = get_octokit();
+        const context = get_context();
+        let missingRequired = totalRequired;
+        let fullText = "";
+        for (let member in approvers) {
+            if (approvers[member]) {
+                missingRequired--;
+            }
+            fullText += `${member} ${approvers[member] ? '✅' : '❌'}\n`;
+        }
+        yield octokit.checks.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            head_sha: context.sha,
+            name: "my-check-name",
+            status: "completed",
+            conclusion: missingRequired > 0 ? 'failure' : 'success',
+            output: {
+                title: 'Required Approvers',
+                summary: 'Missing',
+                text: fullText
+            }
+        });
+    });
 }
-function get_token() {
-    return core.getInput('token');
-}
-function get_config_path() {
-    return core.getInput('config');
-}
-function get_octokit() {
-    const token = get_token();
-    return github.getOctokit(token);
-}
+let cacheContext = null;
+let cacheToken = null;
+let cacheConfigPath = null;
+let cacheOctoKit = null;
+let get_context = () => cacheContext || (cacheContext = github.context);
+let get_token = () => cacheToken || (cacheToken = core.getInput('token'));
+let get_config_path = () => cacheConfigPath || (cacheConfigPath = core.getInput('config'));
+let get_octokit = () => cacheOctoKit || (cacheOctoKit = github.getOctokit(get_token()));
 exports.default = {
     fetch_config,
     get_reviews,
+    explainStatus
 };

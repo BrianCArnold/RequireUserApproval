@@ -39,7 +39,7 @@ const core = __importStar(require("@actions/core"));
 const github_1 = __importDefault(require("./github"));
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
-        core.info('Fetching configuration file from input "config"...');
+        core.info('Fetching configuration...');
         let config;
         try {
             config = yield github_1.default.fetch_config();
@@ -47,27 +47,25 @@ function run() {
         catch (error) {
             if (error.status === 404) {
                 core.warning('No configuration file is found in the base branch; terminating the process');
-                return;
             }
             throw error;
         }
-        core.info("Config: ");
-        core.info(config);
+        core.debug("Config: ");
+        core.debug(JSON.stringify(config, null, '\t'));
         core.info('Getting reviews...');
         let reviews = yield github_1.default.get_reviews();
         let requirementCounts = {};
         let requirementMembers = {};
-        core.info('Retrieving required group configurations...');
+        core.debug('Retrieving required group configurations...');
         for (let req in config.groups) {
-            core.info(` - Group: ${req}`);
-            core.info(` - Required: ${config.groups[req].required}`);
+            core.debug(` - Group: ${req}`);
             requirementCounts[req] = config.groups[req].required;
             requirementMembers[req] = {};
-            core.info(` - Requiring ${config.groups[req].required} of the following:`);
+            core.debug(` - Requiring ${config.groups[req].required} of the following:`);
             for (let i in config.groups[req].members) {
                 let member = config.groups[req].members[i];
                 requirementMembers[req][member] = false;
-                core.info(`   - ${member}`);
+                core.debug(`   - ${member}`);
             }
         }
         let reviewerState = {};
@@ -78,7 +76,7 @@ function run() {
             let state = review.state;
             reviewerState[userName] = state;
         }
-        core.info('Processing reviews...');
+        core.debug('Processing reviews...');
         for (let userName in reviewerState) {
             let state = reviewerState[userName];
             if (state == 'APPROVED') {
@@ -95,28 +93,21 @@ function run() {
         let failedStrings = "";
         core.info('Checking for required reviewers...');
         for (let group in requirementMembers) {
-            let groupCount = 0;
-            for (let member in requirementMembers[group]) {
-                if (requirementMembers[group][member]) {
-                    groupCount++;
-                }
-            }
-            if (groupCount >= requirementCounts[group]) {
-                //Enough Approvers
-                core.info(`Required Approver count met from group: ${group}.`);
-            }
-            else {
-                failed = true;
-                //Not enough approvers.
-                failedStrings += `Missing ${requirementCounts[group] - groupCount} Required Approvers from group: ${group}:\n`;
-                for (let member in requirementMembers[group]) {
-                    let status = requirementMembers[group][member] ? '✅' : '❌';
-                    failedStrings += ` - ${member} ${status}\n`;
-                }
-            }
-        }
-        if (failed) {
-            core.setFailed(failedStrings);
+            let groupCountRequired = requirementCounts[group];
+            let groupMemberApprovals = requirementMembers[group];
+            yield github_1.default.explainStatus(group, groupMemberApprovals, groupCountRequired);
+            // if (groupCount >= requirementCounts[group]) {
+            //   //Enough Approvers
+            //   core.info(`Required Approver count met from group: ${group}.`);
+            // } else {
+            //   failed = true;
+            //   //Not enough approvers.
+            //   failedStrings += `Missing ${requirementCounts[group] - groupCount} Required Approvers from group: ${group}:\n`;
+            //   for (let member in groupMembers) {
+            //     let status = groupMembers[member] ? '✅' : '❌';
+            //     failedStrings += ` - ${member} ${status}\n`;
+            //   }
+            // }
         }
     });
 }
