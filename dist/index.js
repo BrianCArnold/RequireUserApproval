@@ -43,7 +43,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(2186));
-const github_1 = __importDefault(__nccwpck_require__(5438));
+const github = __importStar(__nccwpck_require__(5438));
 __nccwpck_require__(2539);
 const yaml_1 = __importDefault(__nccwpck_require__(4603));
 function fetch_config() {
@@ -76,7 +76,7 @@ function get_reviews() {
     });
 }
 function get_context() {
-    return github_1.default.context;
+    return github.context;
 }
 function get_token() {
     return core.getInput('token');
@@ -86,7 +86,7 @@ function get_config_path() {
 }
 function get_octokit() {
     const token = get_token();
-    return github_1.default.getOctokit(token);
+    return github.getOctokit(token);
 }
 exports["default"] = {
     fetch_config,

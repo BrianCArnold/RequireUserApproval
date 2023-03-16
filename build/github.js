@@ -36,7 +36,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const core = __importStar(require("@actions/core"));
-const github_1 = __importDefault(require("@actions/github"));
+const github = __importStar(require("@actions/github"));
 require("lodash/partition");
 const yaml_1 = __importDefault(require("yaml"));
 function fetch_config() {
@@ -69,7 +69,7 @@ function get_reviews() {
     });
 }
 function get_context() {
-    return github_1.default.context;
+    return github.context;
 }
 function get_token() {
     return core.getInput('token');
@@ -79,7 +79,7 @@ function get_config_path() {
 }
 function get_octokit() {
     const token = get_token();
-    return github_1.default.getOctokit(token);
+    return github.getOctokit(token);
 }
 exports.default = {
     fetch_config,

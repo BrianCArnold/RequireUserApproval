@@ -1,7 +1,7 @@
 'use strict';
 
 import * as core from '@actions/core';
-import github from '@actions/github';
+import * as github from '@actions/github';
 import 'lodash/partition';
 import yaml from 'yaml';
 

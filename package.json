@@ -1,6 +1,6 @@
 {
   "name": "require-user-approval",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "GitHub Action that automatically checks if a set of required users have approved the pull request.",
   "main": "index.js",
   "scripts": {
