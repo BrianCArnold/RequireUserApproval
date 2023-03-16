@@ -77,7 +77,6 @@ async function run() {
   core.debug('Checking for required reviewers...');
 
   for (let group in requirementMembers) {
-    let groupName = requirementMembers
     let groupApprovalRequired = requirementCounts[group];
     let groupMemberApprovals = requirementMembers[group];
     let groupApprovalCount = 0;
@@ -94,7 +93,7 @@ async function run() {
     // await github.explainStatus(group, groupMemberApprovals, groupCountRequired);
     if (groupApprovalCount >= groupApprovalRequired) {
       //Enough Approvers
-      core.startGroup(`We have all required approval(s) from group: ${group}.`);
+      core.startGroup(`✅ ${group}: (${groupApprovalCount}/${groupApprovalRequired}) approval(s).`);
       let appCount = 0;
       for (let approval in groupApprovedStrings) {
         core.info(`(${++appCount}/${groupApprovalRequired}) ✅ ${groupApprovedStrings[approval]}`);
@@ -106,7 +105,7 @@ async function run() {
     } else {
       failed = true;
       failedGroups.push(group);
-      core.startGroup(`We have (${groupApprovalCount}/${groupApprovalRequired}) approval(s) from group: ${group}.`);
+      core.startGroup(`❌ ${group}: (${groupApprovalCount}/${groupApprovalRequired}) approval(s).`);
       let appCount = 0;
       for (let approval in groupApprovedStrings) {
         core.info(`(${++appCount}/${groupApprovalRequired}) ✅ ${groupApprovedStrings[approval]}`);
