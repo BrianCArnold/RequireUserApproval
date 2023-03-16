@@ -24,23 +24,23 @@ async function run() {
   core.info('Getting reviews...');
   let reviews = await github.get_reviews();
 
-  let requirementCounts: { [key: string]: number } = {};
-  let requirementMembers: { [key: string]: string[] } = {};
+  let requirementCounts: { [group: string]: number } = {};
+  let requirementMembers: { [group: string]: { [user: string]: boolean } } = {};
   core.info('Retrieving required group configurations...');
   for (let req in config.groups) {
     core.info(` - Group: ${req}`);
     core.info(` - Required: ${config.groups[req].required}`);
     requirementCounts[req] = config.groups[req].required;
-    requirementMembers[req] = config.groups[req].members;
+    requirementMembers[req] = {};
     core.info(` - Requiring ${config.groups[req].required} of the following:`);
-    for (let mem in config.groups[req].members) {
-      core.info(`   - ${config.groups[req].members[mem]}`);
+    for (let i in config.groups[req].members) {
+      let member = config.groups[req].members[i];
+      requirementMembers[req][member] = false;
+      core.info(`   - ${member}`);
     }
   }
   
-  let reviewerState: { [key:string] : string } = {};
-
-  let processedReviewers: string[] = [];
+  let reviewerState: { [group:string] : string } = {};
 
   core.info('Getting most recent review for each reviewer...')
   for (let i = 0; i < reviews.length; i++) {
@@ -48,28 +48,48 @@ async function run() {
     let userName = review.user.login;
     let state = review.state;
     reviewerState[userName] = state;
-    core.info(` - Processing ${state} review by ${userName}...`);
   }
 
-  core.info('Processing most review from each user...')
+  core.info('Processing reviews...')
   for (let userName in reviewerState) {
     let state =  reviewerState[userName];
-    core.info(` - ${userName}: ${state}`)
-    if (!processedReviewers.includes(userName) && state == 'APPROVED')
+    if (state == 'APPROVED')
     {
-      processedReviewers.push(userName);
-      for (let req in requirementMembers) {
-        if (requirementMembers[req].includes(userName)) {
-          requirementCounts[req]--;
+      for (let group in requirementMembers) {
+        for (let member in requirementMembers[group]) {
+          if (member == userName) {
+            requirementMembers[group][member] = true;
+          }
         }
       }
     }
   }
+  let failed = false;
+  let failedStrings: string = "";
+  core.info('Checking for required reviewers...');
 
-  for (let req in requirementCounts) {
-    if (requirementCounts[req] > 0) {
-      core.setFailed('Missing one or more required approvers.');
+  for (let group in requirementMembers) {
+    let groupCount = 0;
+    for (let member in requirementMembers[group]) {
+      if (requirementMembers[group][member]) {
+        groupCount++;
+      }
     }
+    if (groupCount >= requirementCounts[group]) {
+      //Enough Approvers
+      core.info(`Required Approver count met from group: ${group}.`);
+    } else {
+      failed = true;
+      //Not enough approvers.
+      failedStrings += `Missing ${requirementCounts[group] - groupCount} Required Approvers from group: ${group}:\n`;
+      for (let member in requirementMembers[group]) {
+        let status = requirementMembers[group][member] ? '✅' : '❌';
+        failedStrings += ` - ${member} ${status}\n`;
+      }
+    }
+  }
+  if (failed) {
+    core.setFailed(failedStrings);
   }
 }
 
