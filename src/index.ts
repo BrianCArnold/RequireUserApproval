@@ -99,7 +99,7 @@ async function run() {
         core.info(`(${++appCount}/${groupApprovalRequired}) ✅ ${groupApprovedStrings[approval]}`);
       }
       for (let unapproval in groupNotApprovedStrings) {
-        core.info(`(${appCount}/${groupApprovalRequired})   ${groupNotApprovedStrings[unapproval]}`);
+        core.info(`(${appCount}/${groupApprovalRequired})    ${groupNotApprovedStrings[unapproval]}`);
       }
       core.endGroup();
     } else {
