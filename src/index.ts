@@ -31,19 +31,20 @@ async function run() {
 
   let { affected: affectedGroups, unaffected: unaffectedGroups } = identifyGroupsByChangedFiles(config, await github.fetch_changed_files());
 
-  for (let req in affectedGroups) {
-    core.debug(` - Group: ${req}`);
-    if (affectedGroups[req].required == undefined) {
+  for (let groupName in affectedGroups) {
+    await github.addCheckRun(groupName);
+    core.debug(` - Group: ${groupName}`);
+    if (affectedGroups[groupName].required == undefined) {
       core.warning(' - Group Required Count not specified, assuming 1 approver from group required.');
-      affectedGroups[req].required = 1;
+      affectedGroups[groupName].required = 1;
     } else {
-      requirementCounts[req] = affectedGroups[req].required ?? 1;
+      requirementCounts[groupName] = affectedGroups[groupName].required ?? 1;
     }
-    requirementMembers[req] = {};
-    core.debug(` - Requiring ${affectedGroups[req].required} of the following:`);
-    for (let i in affectedGroups[req].members) {
-      let member = affectedGroups[req].members[i];
-      requirementMembers[req][member] = false;
+    requirementMembers[groupName] = {};
+    core.debug(` - Requiring ${affectedGroups[groupName].required} of the following:`);
+    for (let i in affectedGroups[groupName].members) {
+      let member = affectedGroups[groupName].members[i];
+      requirementMembers[groupName][member] = false;
       core.debug(`   - ${member}`);
     }
   }
@@ -76,9 +77,9 @@ async function run() {
   let failedGroups: string[] = [];
   core.debug('Checking for required reviewers...');
 
-  for (let group in requirementMembers) {
-    let groupApprovalRequired = requirementCounts[group];
-    let groupMemberApprovals = requirementMembers[group];
+  for (let groupName in requirementMembers) {
+    let groupApprovalRequired = requirementCounts[groupName];
+    let groupMemberApprovals = requirementMembers[groupName];
     let groupApprovalCount = 0;
     let groupNotApprovedStrings: string[] = [];
     let groupApprovedStrings: string[] = [];
@@ -93,7 +94,7 @@ async function run() {
     // await github.explainStatus(group, groupMemberApprovals, groupCountRequired);
     if (groupApprovalCount >= groupApprovalRequired) {
       //Enough Approvers
-      core.startGroup(`✅ ${group}: (${groupApprovalCount}/${groupApprovalRequired}) approval(s).`);
+      core.startGroup(`✅ ${groupName}: (${groupApprovalCount}/${groupApprovalRequired}) approval(s).`);
       let appCount = 0;
       for (let approval in groupApprovedStrings) {
         core.info(`(${++appCount}/${groupApprovalRequired}) ✅ ${groupApprovedStrings[approval]}`);
@@ -102,10 +103,11 @@ async function run() {
         core.info(`(${appCount}/${groupApprovalRequired})   ${groupNotApprovedStrings[unapproval]}`);
       }
       core.endGroup();
+      await github.updateCheckRun(groupName, 'success');
     } else {
       failed = true;
-      failedGroups.push(group);
-      core.startGroup(`❌ ${group}: (${groupApprovalCount}/${groupApprovalRequired}) approval(s).`);
+      failedGroups.push(groupName);
+      core.startGroup(`❌ ${groupName}: (${groupApprovalCount}/${groupApprovalRequired}) approval(s).`);
       let appCount = 0;
       for (let approval in groupApprovedStrings) {
         core.info(`(${++appCount}/${groupApprovalRequired}) ✅ ${groupApprovedStrings[approval]}`);
@@ -114,6 +116,7 @@ async function run() {
         core.info(`(${appCount}/${groupApprovalRequired}) ❌ ${groupNotApprovedStrings[unapproval]}`);
       }
       core.endGroup();
+      await github.updateCheckRun(groupName, 'failure');
     }
   }
   if (failed) {

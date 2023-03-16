@@ -2,12 +2,13 @@
 
 import * as core from '@actions/core';
 import * as github from '@actions/github';
-import { PullsListReviewsResponseData } from '@octokit/types/dist-types/generated/Endpoints.d'
+import { PullsListReviewsResponseData, ChecksCreateResponseData } from '@octokit/types/dist-types/generated/Endpoints.d';
+import { OctokitResponse } from '@octokit/types/dist-types/OctokitResponse.d';
 import { Context } from '@actions/github/lib/context';
 import { GitHub } from '@actions/github/lib/utils';
 import 'lodash/partition';
 import yaml from 'yaml';
-import { Config } from './config';
+import { Config, ConfigGroup } from './config';
 
 
 async function fetch_config(): Promise<Config> {
@@ -62,6 +63,48 @@ async function fetch_changed_files(): Promise<string[]> {
   } while (number_of_files_in_current_page === per_page);
 
   return changed_files;
+}
+
+const groupMap: { [group: string]: OctokitResponse<ChecksCreateResponseData> } = {};
+
+async function addCheckRun(groupName: string) {
+  const octokit = get_octokit();
+
+  const context = get_context();
+
+  core.info(`Creating check run ${groupName}`)
+  groupMap[groupName] = await octokit.checks.create({
+    head_sha: context.sha,
+    name: groupName,
+    status: 'in_progress',
+    output: {
+      title: groupName,
+      summary: ''
+    },
+    ...github.context.repo
+  });
+  
+}
+
+async function updateCheckRun(groupName: string, conclusion: 'success' | 'failure') {
+  const octokit = get_octokit();
+
+  const context = get_context();
+
+  const initCheck = groupMap[groupName];
+  
+  const resp = await octokit.checks.update({
+    check_run_id: initCheck.data.id,
+    conclusion: conclusion,
+    status: 'completed',
+    output: {
+      summary: `${groupName} Approvals.`,
+    },
+    ...github.context.repo
+  })
+  core.info(`Check run create response: ${resp.status}`)
+  core.info(`Check run URL: ${resp.data.url}`)
+  core.info(`Check run HTML: ${resp.data.html_url}`)
 }
 
 
@@ -119,5 +162,7 @@ let get_octokit:() => InstanceType<typeof GitHub> = () => cacheOctoKit || (cache
 export default {
   fetch_config,
   get_reviews,
-  fetch_changed_files
+  fetch_changed_files,
+  addCheckRun,
+  updateCheckRun
 };
