@@ -65,51 +65,6 @@ async function fetch_changed_files(): Promise<string[]> {
   return changed_files;
 }
 
-const groupMap: { [group: string]: OctokitResponse<ChecksCreateResponseData> } = {};
-
-async function addCheckRun(groupName: string) {
-  const octokit = get_octokit();
-
-  const context = get_context();
-
-  core.info(`Creating check run ${groupName}`)
-  groupMap[groupName] = await octokit.checks.create({
-    head_sha: context.sha,
-    name: groupName,
-    status: 'in_progress',
-    output: {
-      title: groupName,
-      summary: ''
-    },
-    ...github.context.repo
-  });
-  
-}
-
-async function updateCheckRun(groupName: string, conclusion: 'success' | 'failure') {
-  const octokit = get_octokit();
-
-  const context = get_context();
-
-  const initCheck = groupMap[groupName];
-  
-  const resp = await octokit.checks.update({
-    check_run_id: initCheck.data.id,
-    conclusion: conclusion,
-    status: 'completed',
-    output: {
-      title: `${groupName} Approvals.`,
-      summary: `${groupName} Approvals.`,
-      text: `${groupName} Approvals.`
-    },
-    ...github.context.repo
-  })
-  core.info(`Check run create response: ${resp.status}`)
-  core.info(`Check run URL: ${resp.data.url}`)
-  core.info(`Check run HTML: ${resp.data.html_url}`)
-}
-
-
 async function get_reviews(): Promise<PullsListReviewsResponseData> {
   const octokit = get_octokit();
 
@@ -164,7 +119,5 @@ let get_octokit:() => InstanceType<typeof GitHub> = () => cacheOctoKit || (cache
 export default {
   fetch_config,
   get_reviews,
-  fetch_changed_files,
-  addCheckRun,
-  updateCheckRun
+  fetch_changed_files
 };

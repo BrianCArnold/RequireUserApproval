@@ -32,7 +32,6 @@ async function run() {
   let { affected: affectedGroups, unaffected: unaffectedGroups } = identifyGroupsByChangedFiles(config, await github.fetch_changed_files());
 
   for (let groupName in affectedGroups) {
-    await github.addCheckRun(groupName);
     core.debug(` - Group: ${groupName}`);
     if (affectedGroups[groupName].required == undefined) {
       core.warning(' - Group Required Count not specified, assuming 1 approver from group required.');
@@ -103,7 +102,6 @@ async function run() {
         core.info(`(${appCount}/${groupApprovalRequired})   ${groupNotApprovedStrings[unapproval]}`);
       }
       core.endGroup();
-      await github.updateCheckRun(groupName, 'success');
     } else {
       failed = true;
       failedGroups.push(groupName);
@@ -116,7 +114,6 @@ async function run() {
         core.info(`(${appCount}/${groupApprovalRequired}) ❌ ${groupNotApprovedStrings[unapproval]}`);
       }
       core.endGroup();
-      await github.updateCheckRun(groupName, 'failure');
     }
   }
   if (failed) {

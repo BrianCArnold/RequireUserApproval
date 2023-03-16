@@ -80,33 +80,6 @@ function fetch_changed_files() {
         return changed_files;
     });
 }
-const groupMap = {};
-function addCheckRun(groupName) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const octokit = get_octokit();
-        const context = get_context();
-        core.info(`Creating check run ${groupName}`);
-        groupMap[groupName] = yield octokit.checks.create(Object.assign({ head_sha: context.sha, name: groupName, status: 'in_progress', output: {
-                title: groupName,
-                summary: ''
-            } }, github.context.repo));
-    });
-}
-function updateCheckRun(groupName, conclusion) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const octokit = get_octokit();
-        const context = get_context();
-        const initCheck = groupMap[groupName];
-        const resp = yield octokit.checks.update(Object.assign({ check_run_id: initCheck.data.id, conclusion: conclusion, status: 'completed', output: {
-                title: `${groupName} Approvals.`,
-                summary: `${groupName} Approvals.`,
-                text: `${groupName} Approvals.`
-            } }, github.context.repo));
-        core.info(`Check run create response: ${resp.status}`);
-        core.info(`Check run URL: ${resp.data.url}`);
-        core.info(`Check run HTML: ${resp.data.html_url}`);
-    });
-}
 function get_reviews() {
     return __awaiter(this, void 0, void 0, function* () {
         const octokit = get_octokit();
@@ -144,7 +117,5 @@ let get_octokit = () => cacheOctoKit || (cacheOctoKit = github.getOctokit(get_to
 exports.default = {
     fetch_config,
     get_reviews,
-    fetch_changed_files,
-    addCheckRun,
-    updateCheckRun
+    fetch_changed_files
 };

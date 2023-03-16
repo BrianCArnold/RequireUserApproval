@@ -87,33 +87,6 @@ function fetch_changed_files() {
         return changed_files;
     });
 }
-const groupMap = {};
-function addCheckRun(groupName) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const octokit = get_octokit();
-        const context = get_context();
-        core.info(`Creating check run ${groupName}`);
-        groupMap[groupName] = yield octokit.checks.create(Object.assign({ head_sha: context.sha, name: groupName, status: 'in_progress', output: {
-                title: groupName,
-                summary: ''
-            } }, github.context.repo));
-    });
-}
-function updateCheckRun(groupName, conclusion) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const octokit = get_octokit();
-        const context = get_context();
-        const initCheck = groupMap[groupName];
-        const resp = yield octokit.checks.update(Object.assign({ check_run_id: initCheck.data.id, conclusion: conclusion, status: 'completed', output: {
-                title: `${groupName} Approvals.`,
-                summary: `${groupName} Approvals.`,
-                text: `${groupName} Approvals.`
-            } }, github.context.repo));
-        core.info(`Check run create response: ${resp.status}`);
-        core.info(`Check run URL: ${resp.data.url}`);
-        core.info(`Check run HTML: ${resp.data.html_url}`);
-    });
-}
 function get_reviews() {
     return __awaiter(this, void 0, void 0, function* () {
         const octokit = get_octokit();
@@ -151,9 +124,7 @@ let get_octokit = () => cacheOctoKit || (cacheOctoKit = github.getOctokit(get_to
 exports["default"] = {
     fetch_config,
     get_reviews,
-    fetch_changed_files,
-    addCheckRun,
-    updateCheckRun
+    fetch_changed_files
 };
 
 
@@ -226,7 +197,6 @@ function run() {
         core.debug('Retrieving required group configurations...');
         let { affected: affectedGroups, unaffected: unaffectedGroups } = identifyGroupsByChangedFiles(config, yield github_1.default.fetch_changed_files());
         for (let groupName in affectedGroups) {
-            yield github_1.default.addCheckRun(groupName);
             core.debug(` - Group: ${groupName}`);
             if (affectedGroups[groupName].required == undefined) {
                 core.warning(' - Group Required Count not specified, assuming 1 approver from group required.');
@@ -294,7 +264,6 @@ function run() {
                     core.info(`(${appCount}/${groupApprovalRequired})   ${groupNotApprovedStrings[unapproval]}`);
                 }
                 core.endGroup();
-                yield github_1.default.updateCheckRun(groupName, 'success');
             }
             else {
                 failed = true;
@@ -308,7 +277,6 @@ function run() {
                     core.info(`(${appCount}/${groupApprovalRequired}) ❌ ${groupNotApprovedStrings[unapproval]}`);
                 }
                 core.endGroup();
-                yield github_1.default.updateCheckRun(groupName, 'failure');
             }
         }
         if (failed) {
