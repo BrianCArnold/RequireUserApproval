@@ -102,6 +102,7 @@ function run() {
         let failedGroups = [];
         core.debug('Checking for required reviewers...');
         for (let group in requirementMembers) {
+            let groupName = requirementMembers;
             let groupApprovalRequired = requirementCounts[group];
             let groupMemberApprovals = requirementMembers[group];
             let groupApprovalCount = 0;
@@ -149,20 +150,20 @@ function run() {
     });
 }
 function identifyGroupsByChangedFiles(config, changedFiles) {
-    const affected = [];
-    const unaffected = [];
+    const affected = {};
+    const unaffected = {};
     for (let groupName in config.groups) {
         const group = config.groups[groupName];
         const fileGlobs = group.paths;
         if (fileGlobs == null || fileGlobs == undefined || fileGlobs.length == 0) {
             core.warning(`No specific path globs assigned for group ${groupName}, assuming global approval.`);
-            affected.push(group);
+            affected[groupName] = group;
         }
         else if (fileGlobs.filter(glob => minimatch.match(changedFiles, glob, { nonull: false, matchBase: true }).length > 0).length > 0) {
-            affected.push(group);
+            affected[groupName] = group;
         }
         else {
-            unaffected.push(group);
+            unaffected[groupName] = group;
         }
     }
     return { affected, unaffected };
