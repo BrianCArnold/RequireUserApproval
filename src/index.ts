@@ -76,9 +76,9 @@ async function run() {
     for (let member in groupMemberApprovals) {
       if (groupMemberApprovals[member]) {
         groupApprovalCount++;
-        groupApprovedStrings.push(` ✅ ${member}`);
+        groupApprovedStrings.push(member);
       }else {
-        groupNotApprovedStrings.push(` ❌ ${member}`);
+        groupNotApprovedStrings.push(member);
       }
     }
     // await github.explainStatus(group, groupMemberApprovals, groupCountRequired);
@@ -87,7 +87,10 @@ async function run() {
       core.startGroup(`We have all required approval(s) from group: ${group}.`);
       let appCount = 1;
       for (let approval in groupApprovedStrings) {
-        core.info(`(${appCount++}/${groupApprovalRequired}) ${groupApprovedStrings[approval]}`);
+        core.info(`(${appCount++}/${groupApprovalRequired}) ✅ ${groupApprovedStrings[approval]}`);
+      }
+      for (let unapproval in groupNotApprovedStrings) {
+        core.info(`(${appCount}/${groupApprovalRequired})   ${groupNotApprovedStrings[unapproval]}`);
       }
       core.endGroup();
     } else {
@@ -96,10 +99,10 @@ async function run() {
       core.startGroup(`We have (${groupApprovalCount}/${groupApprovalRequired}) approval(s) from group: ${group}.`);
       let appCount = 1;
       for (let approval in groupApprovedStrings) {
-        core.info(`(${appCount++}/${groupApprovalRequired}) ${groupApprovedStrings[approval]}`);
+        core.info(`(${appCount++}/${groupApprovalRequired}) ✅ ${groupApprovedStrings[approval]}`);
       }
       for (let unapproval in groupNotApprovedStrings) {
-        core.info(groupNotApprovedStrings[unapproval]);
+        core.info(`(${appCount}/${groupApprovalRequired}) ❌ ${groupNotApprovedStrings[unapproval]}`);
       }
       core.endGroup();
     }
