@@ -1,6 +1,7 @@
 'use strict';
 
 import * as core from '@actions/core';
+import { SummaryTableRow } from '@actions/core/lib/summary';
 import github from './github';
 
 async function run() {
@@ -63,25 +64,42 @@ async function run() {
     }
   }
   let failed = false;
-  let failedStrings: string = "";
+  let failedGroups: string[] = [];
   core.info('Checking for required reviewers...');
 
   for (let group in requirementMembers) {
-    let groupCountRequired = requirementCounts[group];
+    let groupApprovalRequired = requirementCounts[group];
     let groupMemberApprovals = requirementMembers[group];
-    await github.explainStatus(group, groupMemberApprovals, groupCountRequired);
-    // if (groupCount >= requirementCounts[group]) {
-    //   //Enough Approvers
-    //   core.info(`Required Approver count met from group: ${group}.`);
-    // } else {
-    //   failed = true;
-    //   //Not enough approvers.
-    //   failedStrings += `Missing ${requirementCounts[group] - groupCount} Required Approvers from group: ${group}:\n`;
-    //   for (let member in groupMembers) {
-    //     let status = groupMembers[member] ? '✅' : '❌';
-    //     failedStrings += ` - ${member} ${status}\n`;
-    //   }
-    // }
+    let groupApprovalCount = 0;
+    let groupNotApprovedStrings = "";
+    let groupApprovedStrings = "";
+    for (let member in groupMemberApprovals) {
+      if (groupMemberApprovals[member]) {
+        groupApprovalCount++;
+        groupApprovedStrings += ` - ${member} ✅\n`;
+      }
+      for (let member in groupMemberApprovals) {
+        groupNotApprovedStrings += ` - ${member} ❌\n`;
+      }
+    }
+    // await github.explainStatus(group, groupMemberApprovals, groupCountRequired);
+    if (groupApprovalCount >= groupApprovalRequired) {
+      //Enough Approvers
+      core.summary.addHeading(`Required Approver count met from group: ${group}.`);
+    } else {
+      failed = true;
+      failedGroups.push(group);
+      core.summary.addHeading(`Missing ${groupApprovalRequired - groupApprovalCount} approval(s) from group: ${group}.`);
+    }
+    let table: SummaryTableRow[] = [];
+    table.push([ { header: true, data: 'Member'},{ header: true, data: 'Status'} ]);
+    for (let member in groupMemberApprovals){
+      table.push([ { data: member }, {data: groupMemberApprovals[member] ? '✅' :'❌' }])
+    }
+    core.summary.addTable(table);
+  }
+  if (failed) {
+    core.setFailed(`Need approval from these groups: ${failedGroups.join(', ')}`);
   }
 }
 
