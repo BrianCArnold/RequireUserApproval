@@ -28,46 +28,80 @@ async function fetch_config(): Promise<Config> {
 }
 
 
+async function fetch_changed_files(): Promise<string[]> {
+  const context = get_context();
+
+  if (!context.payload.pull_request) {
+    throw 'No pull request found.';
+  }
+  const octokit = get_octokit();
+
+  const changed_files: string[] = [];
+
+  const per_page = 100;
+
+  let page = 0;
+
+  let number_of_files_in_current_page: number;
+
+  do {
+    page += 1;
+
+    const { data: response_body } = await octokit.pulls.listFiles({
+      owner: context.repo.owner,
+      repo: context.repo.repo,
+      pull_number: context.payload.pull_request.number,
+      page,
+      per_page,
+    });
+
+    number_of_files_in_current_page = response_body.length;
+
+    changed_files.push(...response_body.map((file) => file.filename));
+
+  } while (number_of_files_in_current_page === per_page);
+
+  return changed_files;
+}
+
+
 async function get_reviews(): Promise<PullsListReviewsResponseData> {
   const octokit = get_octokit();
+
   const context = get_context();
+
   if (!context.payload.pull_request) {
     throw 'No pull request found.';
   }
 
-  let reviewsResult = await octokit.pulls.listReviews({
-    owner: context.repo.owner,
-    repo: context.repo.repo,
-    pull_number: context.payload.pull_request.number
-  });
-  return reviewsResult.data;
+  const result: PullsListReviewsResponseData = [];
+
+  const per_page = 100;
+
+  let page = 0;
+
+  let number_of_files_in_current_page: number;
+
+  do {
+    page += 1;
+
+    const reviewsResult = await octokit.pulls.listReviews({
+      owner: context.repo.owner,
+      repo: context.repo.repo,
+      pull_number: context.payload.pull_request.number,
+      page: page,
+      per_page: per_page
+    });
+
+    number_of_files_in_current_page = reviewsResult.data.length;
+
+    result.push(...reviewsResult.data);
+
+  } while (number_of_files_in_current_page === per_page);
+
+  return result;
 }
 
-async function explainStatus(group: string, approvers: { [key:string]: boolean }, totalRequired: number): Promise<void> {
-  const octokit = get_octokit();
-  const context = get_context();
-  let missingRequired = totalRequired;
-  let fullText = "";
-  for (let member in approvers) {
-    if (approvers[member]) {
-      missingRequired--;
-    }
-    fullText += `${member} ${approvers[member]? '✅' : '❌'}\n`;
-  }
-  await octokit.checks.create({
-    owner: context.repo.owner,
-    repo: context.repo.repo,
-    head_sha: context.sha,
-    name: "my-check-name",
-    status: "completed",
-    conclusion: missingRequired > 0 ? 'failure' : 'success',
-    output: {
-      title: 'Required Approvers',
-      summary: 'Missing',
-      text: fullText
-    }
-  })
-}
 
 let cacheContext: Context | null = null;
 let cacheToken: string | null = null;
@@ -85,5 +119,5 @@ let get_octokit:() => InstanceType<typeof GitHub> = () => cacheOctoKit || (cache
 export default {
   fetch_config,
   get_reviews,
-  explainStatus
+  fetch_changed_files
 };

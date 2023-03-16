@@ -54,6 +54,32 @@ function fetch_config() {
         return yaml_1.default.parse(ymlContent);
     });
 }
+function fetch_changed_files() {
+    return __awaiter(this, void 0, void 0, function* () {
+        const context = get_context();
+        if (!context.payload.pull_request) {
+            throw 'No pull request found.';
+        }
+        const octokit = get_octokit();
+        const changed_files = [];
+        const per_page = 100;
+        let page = 0;
+        let number_of_files_in_current_page;
+        do {
+            page += 1;
+            const { data: response_body } = yield octokit.pulls.listFiles({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.payload.pull_request.number,
+                page,
+                per_page,
+            });
+            number_of_files_in_current_page = response_body.length;
+            changed_files.push(...response_body.map((file) => file.filename));
+        } while (number_of_files_in_current_page === per_page);
+        return changed_files;
+    });
+}
 function get_reviews() {
     return __awaiter(this, void 0, void 0, function* () {
         const octokit = get_octokit();
@@ -61,39 +87,23 @@ function get_reviews() {
         if (!context.payload.pull_request) {
             throw 'No pull request found.';
         }
-        let reviewsResult = yield octokit.pulls.listReviews({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            pull_number: context.payload.pull_request.number
-        });
-        return reviewsResult.data;
-    });
-}
-function explainStatus(group, approvers, totalRequired) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const octokit = get_octokit();
-        const context = get_context();
-        let missingRequired = totalRequired;
-        let fullText = "";
-        for (let member in approvers) {
-            if (approvers[member]) {
-                missingRequired--;
-            }
-            fullText += `${member} ${approvers[member] ? '✅' : '❌'}\n`;
-        }
-        yield octokit.checks.create({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            head_sha: context.sha,
-            name: "my-check-name",
-            status: "completed",
-            conclusion: missingRequired > 0 ? 'failure' : 'success',
-            output: {
-                title: 'Required Approvers',
-                summary: 'Missing',
-                text: fullText
-            }
-        });
+        const result = [];
+        const per_page = 100;
+        let page = 0;
+        let number_of_files_in_current_page;
+        do {
+            page += 1;
+            const reviewsResult = yield octokit.pulls.listReviews({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.payload.pull_request.number,
+                page: page,
+                per_page: per_page
+            });
+            number_of_files_in_current_page = reviewsResult.data.length;
+            result.push(...reviewsResult.data);
+        } while (number_of_files_in_current_page === per_page);
+        return result;
     });
 }
 let cacheContext = null;
@@ -107,5 +117,5 @@ let get_octokit = () => cacheOctoKit || (cacheOctoKit = github.getOctokit(get_to
 exports.default = {
     fetch_config,
     get_reviews,
-    explainStatus
+    fetch_changed_files
 };

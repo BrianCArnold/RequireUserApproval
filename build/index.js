@@ -36,8 +36,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const core = __importStar(require("@actions/core"));
+const minimatch = __importStar(require("minimatch"));
 const github_1 = __importDefault(require("./github"));
 function run() {
+    var _a;
     return __awaiter(this, void 0, void 0, function* () {
         core.info('Fetching configuration...');
         let config;
@@ -57,13 +59,20 @@ function run() {
         let requirementCounts = {};
         let requirementMembers = {};
         core.debug('Retrieving required group configurations...');
-        for (let req in config.groups) {
+        let { affected: affectedGroups, unaffected: unaffectedGroups } = identifyGroupsByChangedFiles(config, yield github_1.default.fetch_changed_files());
+        for (let req in affectedGroups) {
             core.debug(` - Group: ${req}`);
-            requirementCounts[req] = config.groups[req].required;
+            if (affectedGroups[req].required == undefined) {
+                core.warning(' - Group Required Count not specified, assuming 1 approver from group required.');
+                affectedGroups[req].required = 1;
+            }
+            else {
+                requirementCounts[req] = (_a = affectedGroups[req].required) !== null && _a !== void 0 ? _a : 1;
+            }
             requirementMembers[req] = {};
-            core.debug(` - Requiring ${config.groups[req].required} of the following:`);
-            for (let i in config.groups[req].members) {
-                let member = config.groups[req].members[i];
+            core.debug(` - Requiring ${affectedGroups[req].required} of the following:`);
+            for (let i in affectedGroups[req].members) {
+                let member = affectedGroups[req].members[i];
                 requirementMembers[req][member] = false;
                 core.debug(`   - ${member}`);
             }
@@ -111,9 +120,9 @@ function run() {
             if (groupApprovalCount >= groupApprovalRequired) {
                 //Enough Approvers
                 core.startGroup(`We have all required approval(s) from group: ${group}.`);
-                let appCount = 1;
+                let appCount = 0;
                 for (let approval in groupApprovedStrings) {
-                    core.info(`(${appCount++}/${groupApprovalRequired}) ✅ ${groupApprovedStrings[approval]}`);
+                    core.info(`(${++appCount}/${groupApprovalRequired}) ✅ ${groupApprovedStrings[approval]}`);
                 }
                 for (let unapproval in groupNotApprovedStrings) {
                     core.info(`(${appCount}/${groupApprovalRequired})   ${groupNotApprovedStrings[unapproval]}`);
@@ -124,9 +133,9 @@ function run() {
                 failed = true;
                 failedGroups.push(group);
                 core.startGroup(`We have (${groupApprovalCount}/${groupApprovalRequired}) approval(s) from group: ${group}.`);
-                let appCount = 1;
+                let appCount = 0;
                 for (let approval in groupApprovedStrings) {
-                    core.info(`(${appCount++}/${groupApprovalRequired}) ✅ ${groupApprovedStrings[approval]}`);
+                    core.info(`(${++appCount}/${groupApprovalRequired}) ✅ ${groupApprovedStrings[approval]}`);
                 }
                 for (let unapproval in groupNotApprovedStrings) {
                     core.info(`(${appCount}/${groupApprovalRequired}) ❌ ${groupNotApprovedStrings[unapproval]}`);
@@ -138,6 +147,25 @@ function run() {
             core.setFailed(`Need approval from these groups: ${failedGroups.join(', ')}`);
         }
     });
+}
+function identifyGroupsByChangedFiles(config, changedFiles) {
+    const affected = [];
+    const unaffected = [];
+    for (let groupName in config.groups) {
+        const group = config.groups[groupName];
+        const fileGlobs = group.paths;
+        if (fileGlobs == null || fileGlobs == undefined || fileGlobs.length == 0) {
+            core.warning(`No specific path globs assigned for group ${groupName}, assuming global approval.`);
+            affected.push(group);
+        }
+        else if (fileGlobs.filter(glob => minimatch.match(changedFiles, glob, { nonull: false, matchBase: true }).length > 0).length > 0) {
+            affected.push(group);
+        }
+        else {
+            unaffected.push(group);
+        }
+    }
+    return { affected, unaffected };
 }
 module.exports = {
     run,

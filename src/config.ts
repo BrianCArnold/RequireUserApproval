@@ -1,8 +1,8 @@
 export interface ConfigGroup
 {
     members: string[];
-    required: number;
-    paths: string[];
+    required?: number;
+    paths?: string[];
 }
 
 export interface Config

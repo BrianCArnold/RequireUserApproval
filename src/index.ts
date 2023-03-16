@@ -1,7 +1,8 @@
 'use strict';
 
 import * as core from '@actions/core';
-import { SummaryTableRow } from '@actions/core/lib/summary';
+import * as minimatch from 'minimatch';
+import { Config, ConfigGroup } from './config';
 import github from './github';
 
 async function run() {
@@ -27,13 +28,21 @@ async function run() {
   let requirementCounts: { [group: string]: number } = {};
   let requirementMembers: { [group: string]: { [user: string]: boolean } } = {};
   core.debug('Retrieving required group configurations...');
-  for (let req in config.groups) {
+
+  let { affected: affectedGroups, unaffected: unaffectedGroups } = identifyGroupsByChangedFiles(config, await github.fetch_changed_files());
+
+  for (let req in affectedGroups) {
     core.debug(` - Group: ${req}`);
-    requirementCounts[req] = config.groups[req].required;
+    if (affectedGroups[req].required == undefined) {
+      core.warning(' - Group Required Count not specified, assuming 1 approver from group required.');
+      affectedGroups[req].required = 1;
+    } else {
+      requirementCounts[req] = affectedGroups[req].required ?? 1;
+    }
     requirementMembers[req] = {};
-    core.debug(` - Requiring ${config.groups[req].required} of the following:`);
-    for (let i in config.groups[req].members) {
-      let member = config.groups[req].members[i];
+    core.debug(` - Requiring ${affectedGroups[req].required} of the following:`);
+    for (let i in affectedGroups[req].members) {
+      let member = affectedGroups[req].members[i];
       requirementMembers[req][member] = false;
       core.debug(`   - ${member}`);
     }
@@ -85,9 +94,9 @@ async function run() {
     if (groupApprovalCount >= groupApprovalRequired) {
       //Enough Approvers
       core.startGroup(`We have all required approval(s) from group: ${group}.`);
-      let appCount = 1;
+      let appCount = 0;
       for (let approval in groupApprovedStrings) {
-        core.info(`(${appCount++}/${groupApprovalRequired}) ✅ ${groupApprovedStrings[approval]}`);
+        core.info(`(${++appCount}/${groupApprovalRequired}) ✅ ${groupApprovedStrings[approval]}`);
       }
       for (let unapproval in groupNotApprovedStrings) {
         core.info(`(${appCount}/${groupApprovalRequired})   ${groupNotApprovedStrings[unapproval]}`);
@@ -97,9 +106,9 @@ async function run() {
       failed = true;
       failedGroups.push(group);
       core.startGroup(`We have (${groupApprovalCount}/${groupApprovalRequired}) approval(s) from group: ${group}.`);
-      let appCount = 1;
+      let appCount = 0;
       for (let approval in groupApprovedStrings) {
-        core.info(`(${appCount++}/${groupApprovalRequired}) ✅ ${groupApprovedStrings[approval]}`);
+        core.info(`(${++appCount}/${groupApprovalRequired}) ✅ ${groupApprovedStrings[approval]}`);
       }
       for (let unapproval in groupNotApprovedStrings) {
         core.info(`(${appCount}/${groupApprovalRequired}) ❌ ${groupNotApprovedStrings[unapproval]}`);
@@ -110,6 +119,26 @@ async function run() {
   if (failed) {
     core.setFailed(`Need approval from these groups: ${failedGroups.join(', ')}`);
   }
+}
+
+function identifyGroupsByChangedFiles(config: Config, changedFiles: string[]): { affected: ConfigGroup[], unaffected: ConfigGroup[] } {
+  const affected: ConfigGroup[] = [];
+  const unaffected: ConfigGroup[] = [];
+  for (let groupName in config.groups) {
+    const group = config.groups[groupName];
+    const fileGlobs = group.paths;
+    if (fileGlobs == null || fileGlobs == undefined || fileGlobs.length == 0)
+    {
+      core.warning(`No specific path globs assigned for group ${groupName}, assuming global approval.`);
+      affected.push(group);
+    }
+    else if (fileGlobs.filter(glob => minimatch.match(changedFiles, glob, {nonull: false,matchBase: true}).length > 0).length > 0){
+      affected.push(group);
+    } else {
+      unaffected.push(group);
+    }
+  }
+  return { affected, unaffected };
 }
 
 module.exports = {
