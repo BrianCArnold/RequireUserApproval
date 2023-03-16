@@ -110,21 +110,23 @@ function run() {
             // await github.explainStatus(group, groupMemberApprovals, groupCountRequired);
             if (groupApprovalCount >= groupApprovalRequired) {
                 //Enough Approvers
-                core.startGroup(`Required Approver count met from group: ${group}.`);
+                core.startGroup(`We have all required approval(s) from group: ${group}.`);
+                let appCount = 1;
                 for (let approval in groupApprovedStrings) {
-                    core.info(groupApprovedStrings[approval]);
+                    core.info(`(${appCount++}/${groupApprovalRequired}) ${groupApprovedStrings[approval]}`);
                 }
                 core.endGroup();
             }
             else {
                 failed = true;
                 failedGroups.push(group);
-                core.startGroup(`Missing ${groupApprovalRequired - groupApprovalCount} approval(s) from group: ${group}.`);
+                core.startGroup(`We have (${groupApprovalCount}/${groupApprovalRequired}) approval(s) from group: ${group}.`);
+                let appCount = 1;
                 for (let approval in groupApprovedStrings) {
-                    core.info(groupApprovedStrings[approval]);
+                    core.info(`(${appCount++}/${groupApprovalRequired}) ${groupApprovedStrings[approval]}`);
                 }
                 for (let unapproval in groupNotApprovedStrings) {
-                    core.warning(groupNotApprovedStrings[unapproval]);
+                    core.info(groupNotApprovedStrings[unapproval]);
                 }
                 core.endGroup();
             }
