@@ -38,13 +38,23 @@ async function run() {
     }
   }
   
+  let reviewerState: { [key:string] : string } = {};
+
   let processedReviewers: string[] = [];
 
+  core.info('Getting most recent review for each reviewer...')
   for (let i = 0; i < reviews.length; i++) {
     let review = reviews[i];
     let userName = review.user.login;
     let state = review.state;
-    core.info(`Processing ${state} review by ${userName}...`);
+    reviewerState[userName] = state;
+    core.info(` - Processing ${state} review by ${userName}...`);
+  }
+
+  core.info('Processing most review from each user...')
+  for (let userName in reviewerState) {
+    let state =  reviewerState[userName];
+    core.info(` - ${userName}: ${state}`)
     if (!processedReviewers.includes(userName) && state == 'APPROVED')
     {
       processedReviewers.push(userName);
