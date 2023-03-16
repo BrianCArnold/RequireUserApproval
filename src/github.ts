@@ -18,7 +18,9 @@ async function fetch_config() {
     ref: context.ref,
   });
 
-  return yaml.parse(response_body.content);
+  var ymlContent = Buffer.from(response_body.content, 'base64').toString();
+
+  return yaml.parse(ymlContent);
 }
 
 

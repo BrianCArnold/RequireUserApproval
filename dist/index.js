@@ -57,7 +57,8 @@ function fetch_config() {
             path: config_path,
             ref: context.ref,
         });
-        return yaml_1.default.parse(response_body.content);
+        var ymlContent = Buffer.from(response_body.content, 'base64').toString();
+        return yaml_1.default.parse(ymlContent);
     });
 }
 function get_reviews() {
