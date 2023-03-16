@@ -18,6 +18,9 @@ async function run() {
     throw error;
   }
 
+  core.info("Config: ");
+  core.info(config);
+
   core.info('Getting reviews...');
   let reviews = await github.get_reviews();
 

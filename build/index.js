@@ -51,6 +51,8 @@ function run() {
             }
             throw error;
         }
+        core.info("Config: ");
+        core.info(config);
         core.info('Getting reviews...');
         let reviews = yield github_1.default.get_reviews();
         let requirementCounts = {};
