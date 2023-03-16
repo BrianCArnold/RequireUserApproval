@@ -98,7 +98,9 @@ async function updateCheckRun(groupName: string, conclusion: 'success' | 'failur
     conclusion: conclusion,
     status: 'completed',
     output: {
+      title: `${groupName} Approvals.`,
       summary: `${groupName} Approvals.`,
+      text: `${groupName} Approvals.`
     },
     ...github.context.repo
   })

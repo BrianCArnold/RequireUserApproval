@@ -105,7 +105,9 @@ function updateCheckRun(groupName, conclusion) {
         const context = get_context();
         const initCheck = groupMap[groupName];
         const resp = yield octokit.checks.update(Object.assign({ check_run_id: initCheck.data.id, conclusion: conclusion, status: 'completed', output: {
+                title: `${groupName} Approvals.`,
                 summary: `${groupName} Approvals.`,
+                text: `${groupName} Approvals.`
             } }, github.context.repo));
         core.info(`Check run create response: ${resp.status}`);
         core.info(`Check run URL: ${resp.data.url}`);
