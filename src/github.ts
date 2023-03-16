@@ -1,15 +1,54 @@
-'use strict';
-
 import * as core from '@actions/core';
 import * as github from '@actions/github';
-import { PullsListReviewsResponseData, ChecksCreateResponseData } from '@octokit/types/dist-types/generated/Endpoints.d';
-import { OctokitResponse } from '@octokit/types/dist-types/OctokitResponse.d';
+import { PullsListReviewsResponseData } from '@octokit/types/dist-types/generated/Endpoints.d';
 import { Context } from '@actions/github/lib/context';
 import { GitHub } from '@actions/github/lib/utils';
-import 'lodash/partition';
+import partition from 'lodash/partition';
 import yaml from 'yaml';
 import { Config, ConfigGroup } from './config';
 
+const teams: { [team: string]: string[] } = {};
+
+async function getTeamMembers(teamName: string): Promise<string[]> {
+  const context = get_context();
+  const octokit = get_octokit();
+
+  const members = await octokit.teams.listMembersInOrg({
+    org: 'SpiderRock',
+    team_slug: teamName
+  });
+
+  let teamMembers: string[] = [];
+
+  for (let i = 0; i < members.data.length; i++) {
+    let member = members.data[i];
+    teamMembers.push(member.login);
+  }
+
+  teams[teamName] = teamMembers;
+
+  return teamMembers;
+}
+
+async function assign_reviewers(group: ConfigGroup) {
+  const context = get_context();
+  const octokit = get_octokit();
+
+  if (context.payload.pull_request == undefined) {
+    throw 'Pull Request Number is Null';
+  }
+
+  const [ teams_with_prefix, individuals ] = partition(group.members, member => member.startsWith('team:'));
+  const teams = teams_with_prefix.map((team_with_prefix) => team_with_prefix.replace('team:', ''));
+
+  return octokit.pulls.requestReviewers({
+    owner: context.repo.owner,
+    repo: context.repo.repo,
+    pull_number: context.payload.pull_request.number,
+    reviewers: individuals,
+    team_reviewers: teams,
+  });
+}
 
 async function fetch_config(): Promise<Config> {
   const context = get_context();
@@ -27,7 +66,6 @@ async function fetch_config(): Promise<Config> {
 
   return yaml.parse(ymlContent);
 }
-
 
 async function fetch_changed_files(): Promise<string[]> {
   const context = get_context();
@@ -102,10 +140,12 @@ async function get_reviews(): Promise<PullsListReviewsResponseData> {
   return result;
 }
 
-
 let cacheContext: Context | null = null;
+
 let cacheToken: string | null = null;
-let cacheConfigPath: string | null = null; 
+
+let cacheConfigPath: string | null = null;
+
 let cacheOctoKit: InstanceType<typeof GitHub> | null = null;
 
 let get_context: () => Context = () => cacheContext || (cacheContext = github.context);
@@ -119,5 +159,7 @@ let get_octokit:() => InstanceType<typeof GitHub> = () => cacheOctoKit || (cache
 export default {
   fetch_config,
   get_reviews,
-  fetch_changed_files
+  fetch_changed_files,
+  assign_reviewers,
+  getTeamMembers
 };

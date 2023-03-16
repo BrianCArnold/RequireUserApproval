@@ -18,6 +18,7 @@
     "yaml": "^1.10.0"
   },
   "devDependencies": {
+    "@types/lodash": "^4.14.191",
     "@types/minimatch": "^5.1.2",
     "@types/node": "^18.15.2",
     "@vercel/ncc": "^0.33.3",

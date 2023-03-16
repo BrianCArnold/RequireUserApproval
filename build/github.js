@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     var desc = Object.getOwnPropertyDescriptor(m, k);
@@ -37,8 +37,44 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const core = __importStar(require("@actions/core"));
 const github = __importStar(require("@actions/github"));
-require("lodash/partition");
+const partition_1 = __importDefault(require("lodash/partition"));
 const yaml_1 = __importDefault(require("yaml"));
+const teams = {};
+function getTeamMembers(teamName) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const context = get_context();
+        const octokit = get_octokit();
+        const members = yield octokit.teams.listMembersInOrg({
+            org: 'SpiderRock',
+            team_slug: teamName
+        });
+        let teamMembers = [];
+        for (let i = 0; i < members.data.length; i++) {
+            let member = members.data[i];
+            teamMembers.push(member.login);
+        }
+        teams[teamName] = teamMembers;
+        return teamMembers;
+    });
+}
+function assign_reviewers(group) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const context = get_context();
+        const octokit = get_octokit();
+        if (context.payload.pull_request == undefined) {
+            throw 'Pull Request Number is Null';
+        }
+        const [teams_with_prefix, individuals] = (0, partition_1.default)(group.members, member => member.startsWith('team:'));
+        const teams = teams_with_prefix.map((team_with_prefix) => team_with_prefix.replace('team:', ''));
+        return octokit.pulls.requestReviewers({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            pull_number: context.payload.pull_request.number,
+            reviewers: individuals,
+            team_reviewers: teams,
+        });
+    });
+}
 function fetch_config() {
     return __awaiter(this, void 0, void 0, function* () {
         const context = get_context();
@@ -117,5 +153,7 @@ let get_octokit = () => cacheOctoKit || (cacheOctoKit = github.getOctokit(get_to
 exports.default = {
     fetch_config,
     get_reviews,
-    fetch_changed_files
+    fetch_changed_files,
+    assign_reviewers,
+    getTeamMembers
 };

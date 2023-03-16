@@ -44,8 +44,44 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(2186));
 const github = __importStar(__nccwpck_require__(5438));
-__nccwpck_require__(2539);
+const partition_1 = __importDefault(__nccwpck_require__(2539));
 const yaml_1 = __importDefault(__nccwpck_require__(4603));
+const teams = {};
+function getTeamMembers(teamName) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const context = get_context();
+        const octokit = get_octokit();
+        const members = yield octokit.teams.listMembersInOrg({
+            org: 'SpiderRock',
+            team_slug: teamName
+        });
+        let teamMembers = [];
+        for (let i = 0; i < members.data.length; i++) {
+            let member = members.data[i];
+            teamMembers.push(member.login);
+        }
+        teams[teamName] = teamMembers;
+        return teamMembers;
+    });
+}
+function assign_reviewers(group) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const context = get_context();
+        const octokit = get_octokit();
+        if (context.payload.pull_request == undefined) {
+            throw 'Pull Request Number is Null';
+        }
+        const [teams_with_prefix, individuals] = (0, partition_1.default)(group.members, member => member.startsWith('team:'));
+        const teams = teams_with_prefix.map((team_with_prefix) => team_with_prefix.replace('team:', ''));
+        return octokit.pulls.requestReviewers({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            pull_number: context.payload.pull_request.number,
+            reviewers: individuals,
+            team_reviewers: teams,
+        });
+    });
+}
 function fetch_config() {
     return __awaiter(this, void 0, void 0, function* () {
         const context = get_context();
@@ -124,7 +160,9 @@ let get_octokit = () => cacheOctoKit || (cacheOctoKit = github.getOctokit(get_to
 exports["default"] = {
     fetch_config,
     get_reviews,
-    fetch_changed_files
+    fetch_changed_files,
+    assign_reviewers,
+    getTeamMembers
 };
 
 
@@ -197,6 +235,7 @@ function run() {
         core.debug('Retrieving required group configurations...');
         let { affected: affectedGroups, unaffected: unaffectedGroups } = identifyGroupsByChangedFiles(config, yield github_1.default.fetch_changed_files());
         for (let groupName in affectedGroups) {
+            yield github_1.default.assign_reviewers(affectedGroups[groupName]);
             core.debug(` - Group: ${groupName}`);
             if (affectedGroups[groupName].required == undefined) {
                 core.warning(' - Group Required Count not specified, assuming 1 approver from group required.');
@@ -209,8 +248,18 @@ function run() {
             core.debug(` - Requiring ${affectedGroups[groupName].required} of the following:`);
             for (let i in affectedGroups[groupName].members) {
                 let member = affectedGroups[groupName].members[i];
-                requirementMembers[groupName][member] = false;
-                core.debug(`   - ${member}`);
+                if (member.startsWith('team:')) { // extract teams.
+                    let teamMembers = yield github_1.default.getTeamMembers(member.substring(5));
+                    for (let j in teamMembers) {
+                        let teamMember = teamMembers[j];
+                        requirementMembers[groupName][teamMember] = false;
+                        core.debug(`   - ${teamMember}`);
+                    }
+                }
+                else {
+                    requirementMembers[groupName][member] = false;
+                    core.debug(`   - ${member}`);
+                }
             }
         }
         let reviewerState = {};
@@ -261,7 +310,7 @@ function run() {
                     core.info(`(${++appCount}/${groupApprovalRequired}) ✅ ${groupApprovedStrings[approval]}`);
                 }
                 for (let unapproval in groupNotApprovedStrings) {
-                    core.info(`(${appCount}/${groupApprovalRequired})   ${groupNotApprovedStrings[unapproval]}`);
+                    core.info(`(${appCount}/${groupApprovalRequired})    ${groupNotApprovedStrings[unapproval]}`);
                 }
                 core.endGroup();
             }

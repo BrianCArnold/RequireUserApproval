@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     var desc = Object.getOwnPropertyDescriptor(m, k);
@@ -61,6 +61,7 @@ function run() {
         core.debug('Retrieving required group configurations...');
         let { affected: affectedGroups, unaffected: unaffectedGroups } = identifyGroupsByChangedFiles(config, yield github_1.default.fetch_changed_files());
         for (let groupName in affectedGroups) {
+            yield github_1.default.assign_reviewers(affectedGroups[groupName]);
             core.debug(` - Group: ${groupName}`);
             if (affectedGroups[groupName].required == undefined) {
                 core.warning(' - Group Required Count not specified, assuming 1 approver from group required.');
@@ -73,8 +74,18 @@ function run() {
             core.debug(` - Requiring ${affectedGroups[groupName].required} of the following:`);
             for (let i in affectedGroups[groupName].members) {
                 let member = affectedGroups[groupName].members[i];
-                requirementMembers[groupName][member] = false;
-                core.debug(`   - ${member}`);
+                if (member.startsWith('team:')) { // extract teams.
+                    let teamMembers = yield github_1.default.getTeamMembers(member.substring(5));
+                    for (let j in teamMembers) {
+                        let teamMember = teamMembers[j];
+                        requirementMembers[groupName][teamMember] = false;
+                        core.debug(`   - ${teamMember}`);
+                    }
+                }
+                else {
+                    requirementMembers[groupName][member] = false;
+                    core.debug(`   - ${member}`);
+                }
             }
         }
         let reviewerState = {};
@@ -125,7 +136,7 @@ function run() {
                     core.info(`(${++appCount}/${groupApprovalRequired}) ✅ ${groupApprovedStrings[approval]}`);
                 }
                 for (let unapproval in groupNotApprovedStrings) {
-                    core.info(`(${appCount}/${groupApprovalRequired})   ${groupNotApprovedStrings[unapproval]}`);
+                    core.info(`(${appCount}/${groupApprovalRequired})    ${groupNotApprovedStrings[unapproval]}`);
                 }
                 core.endGroup();
             }

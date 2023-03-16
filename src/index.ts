@@ -1,6 +1,5 @@
-'use strict';
-
 import * as core from '@actions/core';
+import { group } from 'console';
 import * as minimatch from 'minimatch';
 import { Config, ConfigGroup } from './config';
 import github from './github';
@@ -32,6 +31,7 @@ async function run() {
   let { affected: affectedGroups, unaffected: unaffectedGroups } = identifyGroupsByChangedFiles(config, await github.fetch_changed_files());
 
   for (let groupName in affectedGroups) {
+    await github.assign_reviewers(affectedGroups[groupName]);
     core.debug(` - Group: ${groupName}`);
     if (affectedGroups[groupName].required == undefined) {
       core.warning(' - Group Required Count not specified, assuming 1 approver from group required.');
@@ -42,9 +42,26 @@ async function run() {
     requirementMembers[groupName] = {};
     core.debug(` - Requiring ${affectedGroups[groupName].required} of the following:`);
     for (let i in affectedGroups[groupName].members) {
+
       let member = affectedGroups[groupName].members[i];
-      requirementMembers[groupName][member] = false;
-      core.debug(`   - ${member}`);
+      
+      if (member.startsWith('team:')) { // extract teams.
+        
+        let teamMembers = await github.getTeamMembers(member.substring(5));
+
+        for (let j in teamMembers) {
+          let teamMember = teamMembers[j];
+
+          requirementMembers[groupName][teamMember] = false;
+
+          core.debug(`   - ${teamMember}`);
+        }
+
+      } else {
+        requirementMembers[groupName][member] = false;
+
+        core.debug(`   - ${member}`);
+      }
     }
   }
   
@@ -59,6 +76,7 @@ async function run() {
   }
 
   core.debug('Processing reviews...')
+
   for (let userName in reviewerState) {
     let state =  reviewerState[userName];
     if (state == 'APPROVED')
@@ -72,8 +90,11 @@ async function run() {
       }
     }
   }
+
   let failed = false;
+
   let failedGroups: string[] = [];
+
   core.debug('Checking for required reviewers...');
 
   for (let groupName in requirementMembers) {
