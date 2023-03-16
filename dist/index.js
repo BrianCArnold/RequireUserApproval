@@ -195,7 +195,7 @@ function run() {
             }
         }
         let reviewerState = {};
-        core.info('Getting most recent review for each reviewer...');
+        core.debug('Getting most recent review for each reviewer...');
         for (let i = 0; i < reviews.length; i++) {
             let review = reviews[i];
             let userName = review.user.login;
@@ -217,38 +217,43 @@ function run() {
         }
         let failed = false;
         let failedGroups = [];
-        core.info('Checking for required reviewers...');
+        core.debug('Checking for required reviewers...');
         for (let group in requirementMembers) {
             let groupApprovalRequired = requirementCounts[group];
             let groupMemberApprovals = requirementMembers[group];
             let groupApprovalCount = 0;
-            let groupNotApprovedStrings = "";
-            let groupApprovedStrings = "";
+            let groupNotApprovedStrings = [];
+            let groupApprovedStrings = [];
             for (let member in groupMemberApprovals) {
                 if (groupMemberApprovals[member]) {
                     groupApprovalCount++;
-                    groupApprovedStrings += ` - ${member} ✅\n`;
+                    groupApprovedStrings.push(` ✅ ${member}`);
                 }
                 for (let member in groupMemberApprovals) {
-                    groupNotApprovedStrings += ` - ${member} ❌\n`;
+                    groupNotApprovedStrings.push(` ❌ ${member}`);
                 }
             }
             // await github.explainStatus(group, groupMemberApprovals, groupCountRequired);
             if (groupApprovalCount >= groupApprovalRequired) {
                 //Enough Approvers
-                core.summary.addHeading(`Required Approver count met from group: ${group}.`);
+                core.startGroup(`Required Approver count met from group: ${group}.`);
+                for (let approval in groupApprovedStrings) {
+                    core.info(approval);
+                }
+                core.endGroup();
             }
             else {
                 failed = true;
                 failedGroups.push(group);
-                core.summary.addHeading(`Missing ${groupApprovalRequired - groupApprovalCount} approval(s) from group: ${group}.`);
+                core.startGroup(`Missing ${groupApprovalRequired - groupApprovalCount} approval(s) from group: ${group}.`);
+                for (let approval in groupApprovedStrings) {
+                    core.info(approval);
+                }
+                for (let unapproval in groupNotApprovedStrings) {
+                    core.warning(unapproval);
+                }
+                core.endGroup();
             }
-            let table = [];
-            table.push([{ header: true, data: 'Member' }, { header: true, data: 'Status' }]);
-            for (let member in groupMemberApprovals) {
-                table.push([{ data: member }, { data: groupMemberApprovals[member] ? '✅' : '❌' }]);
-            }
-            core.summary.addTable(table);
         }
         if (failed) {
             core.setFailed(`Need approval from these groups: ${failedGroups.join(', ')}`);
