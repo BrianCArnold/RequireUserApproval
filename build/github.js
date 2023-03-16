@@ -55,8 +55,8 @@ function fetch_config() {
 }
 function get_reviews() {
     return __awaiter(this, void 0, void 0, function* () {
-        const context = get_context();
         const octokit = get_octokit();
+        const context = get_context();
         if (!context.payload.pull_request) {
             throw 'No pull request found.';
         }

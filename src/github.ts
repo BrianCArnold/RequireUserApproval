@@ -23,8 +23,8 @@ async function fetch_config() {
 
 
 async function get_reviews() {
-  const context = get_context();
   const octokit = get_octokit();
+  const context = get_context();
   if (!context.payload.pull_request) {
     throw 'No pull request found.';
   }
