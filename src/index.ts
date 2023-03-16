@@ -28,11 +28,13 @@ async function run() {
   let requirementMembers: { [key: string]: string[] } = {};
   core.info('Retrieving required group configurations...');
   for (let req in config.groups) {
+    core.info(` - Group: ${req}`);
+    core.info(` - Required: ${config.groups[req].required}`);
     requirementCounts[req] = config.groups[req].required;
     requirementMembers[req] = config.groups[req].members;
-    core.info(`Requiring ${config.groups[req].required} of the following:`);
+    core.info(` - Requiring ${config.groups[req].required} of the following:`);
     for (let mem in config.groups[req].members) {
-      core.info(`  ${mem}`);
+      core.info(`   - ${config.groups[req].members[mem]}`);
     }
   }
   
